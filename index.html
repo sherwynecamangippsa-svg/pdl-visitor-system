@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lucena City Jail | PDL Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        :root {
+            --pdl-purple: #7b1fa2;
+            --header-tan: #a1887f;
+            --bg-light: #f0f2f5;
+        }
+
+        body {
+            background-color: var(--bg-light);
+            font-family: 'Segoe UI', sans-serif;
+            padding-top: 20px;
+        }
+
+        .dashboard-card {
+            background: white;
+            border-top: 5px solid var(--pdl-purple);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .dash-timer {
+            font-family: monospace;
+            font-weight: bold;
+            font-size: 1.05rem;
+        }
+
+        .warning-time { color: #fd7e14; }
+        .danger-time { color: #dc3545; animation: blinker 1s linear infinite; }
+
+        .search-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        .search-box {
+            background: #fff;
+            border: 2px solid var(--pdl-purple);
+            border-radius: 10px;
+            padding: 10px 20px;
+            font-size: 1.1rem;
+            flex-grow: 1;
+        }
+
+        .btn-main-add {
+            background-color: var(--pdl-purple);
+            color: white;
+            border: none;
+            padding: 0 25px;
+            border-radius: 10px;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+        .btn-main-add:hover {
+            background-color: #651b87;
+            color: white;
+        }
+
+        .bg-purple {
+            background-color: var(--pdl-purple) !important;
+        }
+
+        .pdl-profile-container {
+            border: 3px solid var(--pdl-purple);
+            border-radius: 15px;
+            padding: 20px;
+            background: white;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .pdl-photo {
+            width: 140px;
+            height: 140px;
+            border-radius: 12px;
+            object-fit: cover;
+            border: 1px solid #ddd;
+            cursor: pointer;
+        }
+
+        .pdl-name {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #212121;
+            text-transform: uppercase;
+        }
+
+        .pdl-meta {
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .visitor-table {
+            width: 100%;
+            font-size: 0.85rem;
+            text-align: center;
+        }
+
+        .visitor-table th {
+            background-color: var(--header-tan);
+            color: white;
+            padding: 10px;
+            border: 1px solid #bca8a1;
+            white-space: nowrap;
+        }
+
+        .visitor-table td {
+            padding: 10px;
+            border: 1px solid #eee;
+            vertical-align: middle;
+        }
+
+        .timer-input {
+            width: 70px;
+            text-align: center;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+
+        .status-toggle {
+            cursor: pointer;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            display: inline-block;
+            border: 2px solid #fff;
+            box-shadow: 0 0 2px #000;
+        }
+
+        .status-toggle.in { background-color: #28a745; }
+        .status-toggle.out { background-color: #dc3545; }
+
+        .visitor-section {
+            display: none;
+            margin-top: 15px;
+            border-top: 2px dashed #eee;
+            padding-top: 15px;
+        }
+
+        .small-badge {
+            font-size: 0.75rem;
+        }
+
+        @keyframes blinker {
+            50% { opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container pb-5">
+    <div class="row mb-4 text-center">
+        <h2 class="fw-bold">LUCENA CITY JAIL MANAGEMENT</h2>
+    </div>
+
+    <div class="dashboard-card">
+        <h5 class="fw-bold mb-3">
+            <i class="bi bi-people-fill text-primary"></i> ACTIVE VISITORS (IN)
+        </h5>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Visitor Name</th>
+                        <th>Relation</th>
+                        <th>Visiting PDL</th>
+                        <th>Dorm</th>
+                        <th>Time Remaining</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="activeDashboardBody">
+                    <tr><td colspan="6" class="text-center text-muted">No visitors currently inside.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="search-container">
+        <input type="text" id="pdlSearch" class="form-control search-box" placeholder="🔍 Search PDL Name...">
+        <button class="btn btn-main-add" data-bs-toggle="modal" data-bs-target="#addPdlModal">
+            <i class="bi bi-person-plus-fill"></i> ADD PDL
+        </button>
+    </div>
+
+    <div id="pdlContainer"></div>
+
+    <div class="dashboard-card mt-4">
+        <h5 class="fw-bold mb-3">
+            <i class="bi bi-clock-history text-primary"></i> AUDIT TRAIL
+        </h5>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>Action</th>
+                        <th>Actor</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody id="auditLogBody">
+                    <tr><td colspan="4" class="text-center text-muted">Loading logs...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="timeUpModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-danger">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">TIME EXPIRED!</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <h2 id="alertVisitorName" class="fw-bold text-danger"></h2>
+                <p id="alertPdlContext"></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addPdlModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h5>New PDL</h5>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="newPdlName" class="form-control mb-2" placeholder="Name">
+                <input type="text" id="newPdlDorm" class="form-control mb-2" placeholder="Dorm">
+                <input type="date" id="newPdlBday" class="form-control mb-2">
+                <input type="text" id="newPdlAddr" class="form-control mb-2" placeholder="Address">
+                <select id="newPdlCaseStatus" class="form-select mb-2">
+                    <option value="Serving Sentence">Serving Sentence</option>
+                    <option value="Under Trial">Under Trial</option>
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button id="savePdlBtn" class="btn btn-primary">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addVisitorModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-purple text-white">
+                <h5>New Visitor</h5>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="pdlIdForVisitor">
+                <input type="text" id="visitorName" class="form-control mb-2" placeholder="Visitor Name">
+                <input type="text" id="visitorRel" class="form-control mb-2" placeholder="Relation">
+                <input type="text" id="visitorReq" class="form-control mb-2" placeholder="Requirement / ID">
+                <select id="visitorRemarks" class="form-select mb-2">
+                    <option value="Visitation">Visitation</option>
+                    <option value="Paabot">Paabot</option>
+                    <option value="Conjugal">Conjugal</option>
+                    <option value="Ban">Ban</option>
+                </select>
+                <input type="number" id="visitorLimitDefault" class="form-control mb-2" value="30" placeholder="Limit in minutes">
+            </div>
+            <div class="modal-footer">
+                <button id="saveVisitorBtn" class="btn btn-primary">Confirm</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<input type="file" id="pdlPhotoInput" accept="image/*" hidden>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getDatabase, ref, onValue, push, update, get, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyDl5t9mr2IA5N-eT-sGll9w7rOk6CmZI44",
+        authDomain: "pdl-visitor-look-up-22c1c.firebaseapp.com",
+        databaseURL: "https://pdl-visitor-look-up-22c1c-default-rtdb.firebaseio.com/",
+        projectId: "pdl-visitor-look-up-22c1c",
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    let allPDLs = [];
+    let openSections = new Set();
+    let currentPhotoPdlId = null;
+    let isUserInteracting = false;
+    let pendingRender = false;
+
+    const CURRENT_ACTOR = "admin";
+    const CURRENT_ROLE = "Officer";
+
+    function safeText(value) {
+        return value ?? "";
+    }
+
+    async function sha256Hex(text) {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(text);
+        const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+    }
+
+    async function writeAuditLog({
+        actionType,
+        pdlId,
+        logId = null,
+        oldValue = null,
+        newValue = null,
+        reason = ""
+    }) {
+        const latestHashSnap = await get(ref(db, "/auditMeta/latestHash"));
+        const previousHash = latestHashSnap.exists() ? latestHashSnap.val() : "GENESIS";
+        const timestamp = Date.now();
+
+        const payload = {
+            actionType,
+            pdlId,
+            logId,
+            actor: CURRENT_ACTOR,
+            actorRole: CURRENT_ROLE,
+            timestamp,
+            oldValue,
+            newValue,
+            reason,
+            previousHash
+        };
+
+        const hash = await sha256Hex(JSON.stringify(payload));
+        const auditRef = push(ref(db, "/auditLogs"));
+        const auditId = auditRef.key;
+
+        await set(auditRef, {
+            auditId,
+            ...payload,
+            hash
+        });
+
+        await update(ref(db, "/auditMeta"), {
+            latestHash: hash,
+            latestAuditId: auditId,
+            updatedAt: timestamp
+        });
+    }
+
+    function formatDateOnly(dateStr) {
+        if (!dateStr) return "N/A";
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return dateStr;
+        return d.toLocaleDateString();
+    }
+
+    function requestRender() {
+        if (isUserInteracting) {
+            pendingRender = true;
+            return;
+        }
+
+        pendingRender = false;
+        displayRecords();
+    }
+
+    document.addEventListener("focusin", (e) => {
+        if (e.target.matches("select, input, textarea")) {
+            isUserInteracting = true;
+        }
+    });
+
+    document.addEventListener("focusout", (e) => {
+        if (e.target.matches("select, input, textarea")) {
+            setTimeout(() => {
+                const active = document.activeElement;
+                isUserInteracting = !!(active && active.matches && active.matches("select, input, textarea"));
+                if (!isUserInteracting && pendingRender) {
+                    requestRender();
+                }
+            }, 150);
+        }
+    });
+
+    function getTimerInfo(log) {
+        let timeStr = "--:--";
+        let styleClass = "";
+
+        if (log.status === "in" && log.timeIn && log.timeLimit != null) {
+            const limitMs = Number(log.timeLimit) * 60000;
+            const timeLeft = (Number(log.timeIn) + limitMs) - Date.now();
+
+            if (timeLeft <= 0) {
+                timeStr = "00:00";
+                styleClass = "danger-time";
+            } else {
+                const totalSeconds = Math.floor(timeLeft / 1000);
+                const mins = Math.floor(totalSeconds / 60);
+                const secs = totalSeconds % 60;
+                timeStr = `${mins}:${secs.toString().padStart(2, "0")}`;
+
+                if (mins < 5) {
+                    styleClass = "warning-time";
+                }
+            }
+        }
+
+        return { timeStr, styleClass };
+    }
+
+    const displayRecords = () => {
+        const container = document.getElementById("pdlContainer");
+        const dashBody = document.getElementById("activeDashboardBody");
+        const searchInput = document.getElementById("pdlSearch");
+        const search = searchInput ? searchInput.value.toLowerCase().trim() : "";
+
+        let pdlHtml = "";
+        let dashHtml = "";
+
+        allPDLs
+            .filter(p => (p.name || "").toLowerCase().includes(search))
+            .forEach(pdl => {
+                let logsHtml = "";
+                const isOpen = openSections.has(pdl.id);
+
+                pdl.logs?.forEach(log => {
+                    const { timeStr, styleClass } = getTimerInfo(log);
+
+                    if (log.status === "in" && log.timeIn) {
+                        if (timeStr === "00:00" && !log.notified) {
+                            triggerAlarm(pdl.name, log.name, pdl.id, log.logId);
+                        }
+
+                        dashHtml += `
+                            <tr>
+                                <td class="fw-bold">${safeText(log.name) || "N/A"}</td>
+                                <td>${safeText(log.rel) || "N/A"}</td>
+                                <td>${safeText(pdl.name) || "N/A"}</td>
+                                <td><span class="badge bg-secondary">${safeText(pdl.dorm) || "N/A"}</span></td>
+                                <td class="dash-timer ${styleClass}">${timeStr}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-danger" onclick="window.toggleVisitorStatus('${pdl.id}','${log.logId}','in')">
+                                        Log Out
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    }
+
+                    logsHtml += `
+                        <tr>
+                            <td>${safeText(log.name) || "N/A"}</td>
+                            <td>${safeText(log.rel) || "N/A"}</td>
+                            <td>${safeText(log.req) || "N/A"}</td>
+                            <td>
+                                <select
+                                    class="form-select form-select-sm"
+                                    onchange="window.updateVisitorRemark('${pdl.id}','${log.logId}',this.value)">
+                                    <option value="Visitation" ${log.remarks === 'Visitation' ? 'selected' : ''}>Visitation</option>
+                                    <option value="Paabot" ${log.remarks === 'Paabot' ? 'selected' : ''}>Paabot</option>
+                                    <option value="Conjugal" ${log.remarks === 'Conjugal' ? 'selected' : ''}>Conjugal</option>
+                                    <option value="Ban" ${log.remarks === 'Ban' ? 'selected' : ''}>Ban</option>
+                                </select>
+                            </td>
+                            <td>
+                                <input
+                                    type="number"
+                                    class="timer-input"
+                                    value="${log.timeLimit ?? 0}"
+                                    min="0"
+                                    onchange="window.updateTimeLimit('${pdl.id}','${log.logId}',this.value)"
+                                >
+                            </td>
+                            <td class="dash-timer ${styleClass}" id="timer-${log.logId}">${timeStr}</td>
+                            <td>
+                                <div class="d-flex flex-column align-items-center gap-1">
+                                    <span class="status-toggle ${log.status || 'out'}"
+                                        onclick="window.toggleVisitorStatus('${pdl.id}','${log.logId}','${log.status || 'out'}')">
+                                    </span>
+                                    <small class="text-uppercase fw-bold">${safeText(log.status) || "out"}</small>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                pdlHtml += `
+                    <div class="pdl-profile-container">
+                        <div class="d-flex gap-4 flex-wrap">
+                            <img
+                                src="${pdl.photo || 'https://via.placeholder.com/140'}"
+                                class="pdl-photo"
+                                onclick="window.triggerPhotoUpload('${pdl.id}')"
+                                alt="${safeText(pdl.name) || 'PDL Photo'}"
+                                title="Click to upload photo"
+                            >
+
+                            <div class="flex-grow-1">
+                                <div class="pdl-name">${safeText(pdl.name) || "N/A"}</div>
+
+                                <div class="row mt-2 pdl-meta">
+                                    <div class="col-md-4"><strong>Dorm:</strong> ${safeText(pdl.dorm) || "N/A"}</div>
+                                    <div class="col-md-4"><strong>Birthday:</strong> ${formatDateOnly(pdl.bday)}</div>
+                                    <div class="col-md-4">
+                                        <strong>Case Status:</strong>
+                                        <select
+                                            class="form-select form-select-sm d-inline-block ms-1"
+                                            style="width: 180px;"
+                                            onchange="window.updateCaseStatus('${pdl.id}',this.value)">
+                                            <option value="Serving Sentence" ${pdl.caseStatus === 'Serving Sentence' ? 'selected' : ''}>Serving Sentence</option>
+                                            <option value="Under Trial" ${pdl.caseStatus === 'Under Trial' ? 'selected' : ''}>Under Trial</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-12"><strong>Address:</strong> ${safeText(pdl.addr) || "N/A"}</div>
+                                </div>
+
+                                <div class="mt-3">
+                                    <button class="btn btn-sm btn-outline-primary" onclick="window.toggleLogs('${pdl.id}')">
+                                        ${isOpen ? "Hide History" : "History"}
+                                    </button>
+                                    <button class="btn btn-sm btn-dark ms-2" onclick="window.openAddVisitor('${pdl.id}')">
+                                        + Visitor
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="logs-${pdl.id}" class="visitor-section" style="display:${isOpen ? "block" : "none"}">
+                            <div class="table-responsive">
+                                <table class="visitor-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Visitor</th>
+                                            <th>Relation</th>
+                                            <th>Requirement</th>
+                                            <th>Remarks</th>
+                                            <th>Limit (min)</th>
+                                            <th>Remaining</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${logsHtml || '<tr><td colspan="7">No logs</td></tr>'}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+        if (container) container.innerHTML = pdlHtml;
+        if (dashBody) dashBody.innerHTML = dashHtml || '<tr><td colspan="6" class="text-center text-muted">No visitors currently inside.</td></tr>';
+    };
+
+    setInterval(() => {
+        if (allPDLs.length && !isUserInteracting) requestRender();
+    }, 1000);
+
+    window.toggleVisitorStatus = async (pId, lId, cur) => {
+        const next = cur === "in" ? "out" : "in";
+        const data = { status: next };
+        const pdl = allPDLs.find(p => p.id === pId);
+        const log = pdl?.logs?.find(l => l.logId === lId);
+
+        if (next === "in") {
+            data.timeIn = Date.now();
+            data.notified = false;
+        }
+
+        await update(ref(db, `/${pId}/logs/${lId}`), data);
+        await writeAuditLog({
+            actionType: next === "in" ? "VISITOR_CHECK_IN" : "VISITOR_CHECK_OUT",
+            pdlId: pId,
+            logId: lId,
+            oldValue: cur,
+            newValue: next,
+            reason: log?.name ? `Visitor: ${log.name}` : ""
+        });
+    };
+
+    window.updateTimeLimit = async (pId, lId, val) => {
+        const parsed = parseInt(val);
+        const newValue = isNaN(parsed) ? 0 : parsed;
+        const pdl = allPDLs.find(p => p.id === pId);
+        const log = pdl?.logs?.find(l => l.logId === lId);
+        const oldValue = log?.timeLimit ?? null;
+        if (oldValue === newValue) return;
+
+        await update(ref(db, `/${pId}/logs/${lId}`), { timeLimit: newValue });
+        await writeAuditLog({
+            actionType: "UPDATE_TIME_LIMIT",
+            pdlId: pId,
+            logId: lId,
+            oldValue,
+            newValue,
+            reason: log?.name ? `Visitor: ${log.name}` : ""
+        });
+    };
+
+    window.updateVisitorRemark = async (pId, lId, val) => {
+        const pdl = allPDLs.find(p => p.id === pId);
+        const log = pdl?.logs?.find(l => l.logId === lId);
+        const oldValue = log?.remarks ?? null;
+        if (oldValue === val) return;
+
+        await update(ref(db, `/${pId}/logs/${lId}`), { remarks: val });
+        await writeAuditLog({
+            actionType: "UPDATE_REMARKS",
+            pdlId: pId,
+            logId: lId,
+            oldValue,
+            newValue: val,
+            reason: log?.name ? `Visitor: ${log.name}` : ""
+        });
+    };
+
+    window.updateCaseStatus = async (pId, val) => {
+        const pdl = allPDLs.find(p => p.id === pId);
+        const oldValue = pdl?.caseStatus ?? null;
+        if (oldValue === val) return;
+
+        await update(ref(db, `/${pId}`), { caseStatus: val });
+        await writeAuditLog({
+            actionType: "UPDATE_CASE_STATUS",
+            pdlId: pId,
+            oldValue,
+            newValue: val
+        });
+    };
+
+    window.toggleLogs = (id) => {
+        const el = document.getElementById(`logs-${id}`);
+        if (!el) return;
+        if (el.style.display === "none") {
+            el.style.display = "block";
+            openSections.add(id);
+        } else {
+            el.style.display = "none";
+            openSections.delete(id);
+        }
+        requestRender();
+    };
+
+    window.openAddVisitor = (id) => {
+        document.getElementById("pdlIdForVisitor").value = id;
+        new bootstrap.Modal(document.getElementById("addVisitorModal")).show();
+    };
+
+    window.triggerPhotoUpload = (id) => {
+        currentPhotoPdlId = id;
+        document.getElementById("pdlPhotoInput").click();
+    };
+
+    function triggerAlarm(pdl, vis, pId, lId) {
+        const visitorNameEl = document.getElementById("alertVisitorName");
+        const pdlContextEl = document.getElementById("alertPdlContext");
+        if(visitorNameEl) visitorNameEl.innerText = vis || "Visitor";
+        if(pdlContextEl) pdlContextEl.innerText = `Visiting PDL: ${pdl || "N/A"}`;
+        new bootstrap.Modal(document.getElementById("timeUpModal")).show();
+        update(ref(db, `/${pId}/logs/${lId}`), { notified: true });
+    }
+
+    document.getElementById("pdlPhotoInput").addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (!file || !currentPhotoPdlId) return;
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            const pdl = allPDLs.find(p => p.id === currentPhotoPdlId);
+            const oldValue = pdl?.photo ? "HAS_PHOTO" : "NO_PHOTO";
+            await update(ref(db, `/${currentPhotoPdlId}`), { photo: event.target.result });
+            await writeAuditLog({
+                actionType: "UPDATE_PHOTO",
+                pdlId: currentPhotoPdlId,
+                oldValue,
+                newValue: "HAS_PHOTO"
+            });
+        };
+        reader.readAsDataURL(file);
+        e.target.value = "";
+    });
+
+    onValue(ref(db, "/"), (snap) => {
+        const val = snap.val();
+        if (val) {
+            allPDLs = Object.keys(val)
+                .filter(k => k !== 'auditLogs' && k !== 'auditMeta')
+                .map(k => ({
+                    id: k,
+                    ...val[k],
+                    logs: val[k].logs ? Object.keys(val[k].logs).map(lk => ({ logId: lk, ...val[k].logs[lk] })) : []
+                }));
+        } else {
+            allPDLs = [];
+        }
+        requestRender();
+    });
+
+    // Handle Audit Log Display
+    onValue(ref(db, "/auditLogs"), (snap) => {
+        const auditBody = document.getElementById("auditLogBody");
+        if (!auditBody) return;
+        const val = snap.val();
+        if (val) {
+            const logs = Object.values(val).sort((a, b) => b.timestamp - a.timestamp).slice(0, 10);
+            auditBody.innerHTML = logs.map(log => `
+                <tr>
+                    <td>${new Date(log.timestamp).toLocaleString()}</td>
+                    <td><span class="badge bg-info">${log.actionType}</span></td>
+                    <td>${log.actor} (${log.actorRole})</td>
+                    <td class="small">${log.reason || "-"}</td>
+                </tr>
+            `).join('');
+        } else {
+            auditBody.innerHTML = '<tr><td colspan="4" class="text-center">No logs found.</td></tr>';
+        }
+    });
+
+    document.getElementById("saveVisitorBtn").onclick = async () => {
+        const id = document.getElementById("pdlIdForVisitor").value;
+        const name = document.getElementById("visitorName").value.trim();
+        const rel = document.getElementById("visitorRel").value.trim();
+        const req = document.getElementById("visitorReq").value.trim();
+        const remarks = document.getElementById("visitorRemarks").value;
+        const timeLimit = parseInt(document.getElementById("visitorLimitDefault").value);
+
+        if (!name) { alert("Visitor name is required."); return; }
+
+        const visitorData = {
+            name, rel, req, remarks,
+            timeLimit: isNaN(timeLimit) ? 0 : timeLimit,
+            status: "out", notified: false, timeIn: null
+        };
+
+        const newLogRef = push(ref(db, `/${id}/logs`));
+        await set(newLogRef, visitorData);
+        await writeAuditLog({ actionType: "ADD_VISITOR_LOG", pdlId: id, logId: newLogRef.key, newValue: visitorData });
+
+        document.getElementById("visitorName").value = "";
+        bootstrap.Modal.getInstance(document.getElementById("addVisitorModal")).hide();
+    };
+
+    document.getElementById("savePdlBtn").onclick = async () => {
+        const name = document.getElementById("newPdlName").value.trim();
+        const dorm = document.getElementById("newPdlDorm").value.trim();
+        const bday = document.getElementById("newPdlBday").value;
+        const addr = document.getElementById("newPdlAddr").value.trim();
+        const caseStatus = document.getElementById("newPdlCaseStatus").value;
+
+        if (!name) { alert("PDL name is required."); return; }
+
+        const pdlData = { name, name_lower: name.toLowerCase(), dorm, bday, addr, caseStatus, photo: "" };
+        const newPdlRef = push(ref(db, "/"));
+        await set(newPdlRef, pdlData);
+        await writeAuditLog({ actionType: "CREATE_PDL", pdlId: newPdlRef.key, newValue: pdlData });
+
+        document.getElementById("newPdlName").value = "";
+        bootstrap.Modal.getInstance(document.getElementById("addPdlModal")).hide();
+    };
+
+    document.getElementById("pdlSearch").addEventListener("input", displayRecords);
+</script>
+</body>
+</html>
